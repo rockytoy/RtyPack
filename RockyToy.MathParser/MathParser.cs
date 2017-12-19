@@ -9,103 +9,107 @@ using RockyToy.Common;
 
 namespace RockyToy.MathParser
 {
-	public interface IParserBuilder
+	[PublicAPI]
+	public interface IExprBuilder
 	{
 		[NotNull]
 		ITokenizer Tokenizer { get; set; }
 		[NotNull]
 		IFormatProvider Format { get; set; }
 		[NotNull]
-		IDictionary<string, Func<IParserContext, IList<IConvertible>, IConvertible>> Functions { get; }
+		IDictionary<string, Func<IExprContext, IList<IConvertible>, IConvertible>> Functions { get; }
 		[NotNull]
-		IDictionary<string, Func<IParserContext, IConvertible>> Variables { get; }
-		IParser GetParser();
-		IParser GetParser(IParserContext context);
-		IParser GetParser([NotNull]IReadOnlyDictionary<string, Func<IParserContext, IConvertible>> variables);
-		IParser GetParser([NotNull]IReadOnlyDictionary<string, Func<IParserContext, IList<IConvertible>, IConvertible>> functions, [NotNull]IReadOnlyDictionary<string, Func<IParserContext, IConvertible>> variables);
+		IDictionary<string, Func<IExprContext, IConvertible>> Variables { get; }
+		IExpr Parse(string expr);
+		IExprContext BuildContext();
+		IExprContext BuildContext([NotNull]IReadOnlyDictionary<string, Func<IExprContext, IConvertible>> variables);
+		IExprContext BuildContext([NotNull]IReadOnlyDictionary<string, Func<IExprContext, IList<IConvertible>, IConvertible>> functions, [NotNull]IReadOnlyDictionary<string, Func<IExprContext, IConvertible>> variables);
+
+		IConvertible Eval(string expr);
+
 	}
 
-	public interface IParserContext
+	public interface IExprContext
 	{
-		[NotNull]
-		ITokenizer Tokenizer { get; }
 		[NotNull]
 		IFormatProvider Format { get; }
 		[NotNull]
-		IReadOnlyDictionary<string, Func<IParserContext, IList<IConvertible>, IConvertible>> Functions { get; }
+		IReadOnlyDictionary<string, Func<IExprContext, IList<IConvertible>, IConvertible>> Functions { get; }
 		[NotNull]
-		IReadOnlyDictionary<string, Func<IParserContext, IConvertible>> Variables { get; }
-		
+		IReadOnlyDictionary<string, Func<IExprContext, IConvertible>> Variables { get; }
+
 		bool DoubleNearZero(double val);
 	}
 
-	public class ParserContext : IParserContext
+	public class ExprContext : IExprContext
 	{
-		public ParserContext(ITokenizer tokenizer, IFormatProvider format, IReadOnlyDictionary<string, Func<IParserContext, IList<IConvertible>, IConvertible>> functions, IReadOnlyDictionary<string, Func<IParserContext, IConvertible>> variables)
+		public ExprContext(IFormatProvider format, IReadOnlyDictionary<string, Func<IExprContext, IList<IConvertible>, IConvertible>> functions, IReadOnlyDictionary<string, Func<IExprContext, IConvertible>> variables)
 		{
-			Tokenizer = tokenizer;
 			Format = format;
 			Functions = functions;
 			Variables = variables;
 		}
 
-		public ITokenizer Tokenizer { get; }
 		public IFormatProvider Format { get; }
-		public IReadOnlyDictionary<string, Func<IParserContext, IList<IConvertible>, IConvertible>> Functions { get; }
-		public IReadOnlyDictionary<string, Func<IParserContext, IConvertible>> Variables { get; }
-		
+		public IReadOnlyDictionary<string, Func<IExprContext, IList<IConvertible>, IConvertible>> Functions { get; }
+		public IReadOnlyDictionary<string, Func<IExprContext, IConvertible>> Variables { get; }
+
 		public bool DoubleNearZero(double val)
 		{
 			return Math.Abs(val) < double.Epsilon * 100;
 		}
 	}
 
-	public class ParserBuilder : IParserBuilder
+	public class ExprBuilder : IExprBuilder
 	{
 		public ITokenizer Tokenizer { get; set; }
 		public IFormatProvider Format { get; set; }
-		public IDictionary<string, Func<IParserContext, IList<IConvertible>, IConvertible>> Functions { get; } = new ConcurrentDictionary<string, Func<IParserContext, IList<IConvertible>, IConvertible>>(StringComparer.OrdinalIgnoreCase);
-		public IDictionary<string, Func<IParserContext, IConvertible>> Variables { get; } = new ConcurrentDictionary<string, Func<IParserContext, IConvertible>>(StringComparer.OrdinalIgnoreCase);
-
-		public IParser GetParser(IParserContext context)
+		public IDictionary<string, Func<IExprContext, IList<IConvertible>, IConvertible>> Functions { get; } = new ConcurrentDictionary<string, Func<IExprContext, IList<IConvertible>, IConvertible>>(StringComparer.OrdinalIgnoreCase);
+		public IDictionary<string, Func<IExprContext, IConvertible>> Variables { get; } = new ConcurrentDictionary<string, Func<IExprContext, IConvertible>>(StringComparer.OrdinalIgnoreCase);
+		public IExpr Parse(string expr)
 		{
-			return new Parser(context);
+			return new Expr(Tokenizer.Tokenize(expr));
 		}
 
-		public IParser GetParser()
+		public IExprContext BuildContext()
 		{
-			return GetParser(new ParserContext(Tokenizer, Format,
-				new ReadOnlyDictionary<string, Func<IParserContext, IList<IConvertible>, IConvertible>>(Functions),
-				new ReadOnlyDictionary<string, Func<IParserContext, IConvertible>>(Variables)));
+			return new ExprContext(Format,
+				new ReadOnlyDictionary<string, Func<IExprContext, IList<IConvertible>, IConvertible>>(Functions),
+				new ReadOnlyDictionary<string, Func<IExprContext, IConvertible>>(Variables));
 		}
 
-		public IParser GetParser(IReadOnlyDictionary<string, Func<IParserContext, IConvertible>> variables)
+		public IExprContext BuildContext(IReadOnlyDictionary<string, Func<IExprContext, IConvertible>> variables)
 		{
 			ArgChk.NotNull(variables, nameof(variables));
-			var mergedVar = new ConcurrentDictionary<string, Func<IParserContext, IConvertible>>(Variables, StringComparer.OrdinalIgnoreCase);
+			var mergedVar = new ConcurrentDictionary<string, Func<IExprContext, IConvertible>>(Variables, StringComparer.OrdinalIgnoreCase);
 			foreach (var v in variables)
 				mergedVar[v.Key] = v.Value;
-			return GetParser(new ParserContext(Tokenizer, Format,
-				new ReadOnlyDictionary<string, Func<IParserContext, IList<IConvertible>, IConvertible>>(Functions),
-				new ReadOnlyDictionary<string, Func<IParserContext, IConvertible>>(mergedVar)));
+			return new ExprContext(Format,
+				new ReadOnlyDictionary<string, Func<IExprContext, IList<IConvertible>, IConvertible>>(Functions),
+				new ReadOnlyDictionary<string, Func<IExprContext, IConvertible>>(mergedVar));
 		}
 
-		public IParser GetParser(IReadOnlyDictionary<string, Func<IParserContext, IList<IConvertible>, IConvertible>> functions, IReadOnlyDictionary<string, Func<IParserContext, IConvertible>> variables)
+		public IExprContext BuildContext(IReadOnlyDictionary<string, Func<IExprContext, IList<IConvertible>, IConvertible>> functions, IReadOnlyDictionary<string, Func<IExprContext, IConvertible>> variables)
 		{
 			ArgChk.NotNull(functions, nameof(functions));
 			ArgChk.NotNull(variables, nameof(variables));
-			var mergedVar = new ConcurrentDictionary<string, Func<IParserContext, IConvertible>>(Variables, StringComparer.OrdinalIgnoreCase);
+			var mergedVar = new ConcurrentDictionary<string, Func<IExprContext, IConvertible>>(Variables, StringComparer.OrdinalIgnoreCase);
 			foreach (var v in variables)
 				mergedVar[v.Key] = v.Value;
-			var mergedFunc = new ConcurrentDictionary<string, Func<IParserContext, IList<IConvertible>, IConvertible>>(Functions, StringComparer.OrdinalIgnoreCase);
+			var mergedFunc = new ConcurrentDictionary<string, Func<IExprContext, IList<IConvertible>, IConvertible>>(Functions, StringComparer.OrdinalIgnoreCase);
 			foreach (var f in functions)
 				mergedFunc[f.Key] = f.Value;
-			return GetParser(new ParserContext(Tokenizer, Format,
-				new ReadOnlyDictionary<string, Func<IParserContext, IList<IConvertible>, IConvertible>>(mergedFunc),
-				new ReadOnlyDictionary<string, Func<IParserContext, IConvertible>>(mergedVar)));
+			return new ExprContext(Format,
+				new ReadOnlyDictionary<string, Func<IExprContext, IList<IConvertible>, IConvertible>>(mergedFunc),
+				new ReadOnlyDictionary<string, Func<IExprContext, IConvertible>>(mergedVar));
 		}
 
-		public ParserBuilder()
+		public IConvertible Eval(string expr)
+		{
+			return Parse(expr).Eval(BuildContext());
+		}
+
+		public ExprBuilder()
 		{
 			Tokenizer = new Tokenizer(new TokenFactory());
 			Format = CultureInfo.InvariantCulture;
@@ -122,51 +126,52 @@ namespace RockyToy.MathParser
 			Variables["false"] = _ => false;
 		}
 	}
-
-	public interface IParser
+	
+	[PublicAPI]
+	public interface IExpr
 	{
-		IConvertible Parse([NotNull] string expr);
+		IConvertible Eval([NotNull]IExprContext context);
+		IToken Root { get; }
+		IEnumerable<string> Functions { get; }
+		IEnumerable<string> Variables { get; }
 	}
 
-	public class Parser : IParser
+	public class Expr : IExpr
 	{
-		private readonly IParserContext _context;
-		public Parser(IParserContext context)
+		internal Expr([NotNull] IToken root)
 		{
-			ArgChk.NotNull(context, nameof(context));
-			_context = context;
+			ArgChk.NotNull(root, nameof(root));
+			Root = root;
 		}
 
-		protected virtual IConvertible Arg([NotNull]IToken token, int idx)
+		protected IConvertible Arg([NotNull]IExprContext context, [NotNull]IToken token, int idx)
 		{
 			ArgChk.NotNull(token, nameof(token));
 			ArgChk.InBound(idx, nameof(idx), token.Children);
-			return ParseToken(token.Children[idx]);
+			return EvalToken(context, token.Children[idx]);
 		}
 
-		protected virtual double ArgDouble([NotNull]IToken token, int idx)
+		protected double ArgDouble([NotNull]IExprContext context, [NotNull]IToken token, int idx)
 		{
-			return Arg(token, idx).ToDouble(_context.Format);
+			return Arg(context, token, idx).ToDouble(context.Format);
 		}
 
-		protected virtual long ArgInteger([NotNull]IToken token, int idx)
+		protected long ArgInteger([NotNull]IExprContext context, [NotNull]IToken token, int idx)
 		{
-			return Arg(token, idx).ToInt64(_context.Format);
+			return Arg(context, token, idx).ToInt64(context.Format);
 		}
 
-		protected virtual bool ArgBool([NotNull]IToken token, int idx)
+		protected bool ArgBool([NotNull]IExprContext context, [NotNull]IToken token, int idx)
 		{
-			return Arg(token, idx).ToBoolean(_context.Format);
+			return Arg(context, token, idx).ToBoolean(context.Format);
 		}
 
-		public virtual IConvertible Parse(string expr)
+		public IConvertible Eval(IExprContext context)
 		{
-			ArgChk.NotNullOrEmpty(expr, nameof(expr));
-
-			return ParseToken(_context.Tokenizer.Tokenize(expr));
+			return EvalToken(context, Root);
 		}
 
-		public virtual IConvertible ParseToken([NotNull]IToken token)
+		protected IConvertible EvalToken([NotNull] IExprContext context, [NotNull] IToken token)
 		{
 			ArgChk.NotNull(token, nameof(token));
 
@@ -180,7 +185,7 @@ namespace RockyToy.MathParser
 				case TokenType.Identifier:
 					{
 						ArgChk.NullOrEmpty(token.Children, nameof(token.Children));
-						return _context.Variables[token.Expr](_context);
+						return context.Variables[token.Expr](context);
 					}
 				case TokenType.Func:
 					{
@@ -193,18 +198,16 @@ namespace RockyToy.MathParser
 							{
 								var curArg = arg.Dequeue();
 								if (curArg.Type != TokenType.FuncArgs)
-									args.Add(ParseToken(curArg));
+									args.Add(EvalToken(context, curArg));
 								else
 								{
 									ArgChk.NotNullOrEmpty(curArg.Children, nameof(curArg.Children));
 									foreach (var c in curArg.Children)
-									{
 										arg.Enqueue(c);
-									}
 								}
 							}
 						}
-						return _context.Functions[token.Expr](_context, args);
+						return context.Functions[token.Expr](context, args);
 					}
 				case TokenType.FuncArgs:
 					throw new ArgumentException("Invalid Expression (unexpected ,)");
@@ -212,105 +215,131 @@ namespace RockyToy.MathParser
 				case TokenType.UnaryNoOp:
 					{
 						ArgChk.Eq(token.Children, nameof(token.Children), 1);
-						return Arg(token, 0);
+						return Arg(context, token, 0);
 					}
 				case TokenType.UnaryMinus:
 					{
 						ArgChk.Eq(token.Children, nameof(token.Children), 1);
-						return -ArgDouble(token, 0);
+						return -ArgDouble(context, token, 0);
 					}
 				case TokenType.UnaryNot:
 					{
 						ArgChk.Eq(token.Children, nameof(token.Children), 1);
-						return !ArgBool(token, 0);
+						return !ArgBool(context, token, 0);
 					}
 				case TokenType.BinaryPow:
 					{
 						ArgChk.Eq(token.Children, nameof(token.Children), 2);
-						return Math.Pow(ArgDouble(token, 0), ArgDouble(token, 1));
+						return Math.Pow(ArgDouble(context, token, 0), ArgDouble(context, token, 1));
 					}
 				case TokenType.BinaryMul:
 					{
 						ArgChk.Eq(token.Children, nameof(token.Children), 2);
-						var arg0 = ArgDouble(token, 0);
+						var arg0 = ArgDouble(context, token, 0);
 						// short circuit!!
-						if (_context.DoubleNearZero(arg0))
+						if (context.DoubleNearZero(arg0))
 							return 0;
-						return arg0 * ArgDouble(token, 1);
+						return arg0 * ArgDouble(context, token, 1);
 					}
 				case TokenType.BinaryDiv:
 					{
 						ArgChk.Eq(token.Children, nameof(token.Children), 2);
-						return ArgDouble(token, 0) / ArgDouble(token, 1);
+						return ArgDouble(context, token, 0) / ArgDouble(context, token, 1);
 					}
 				case TokenType.BinaryDivInt:
 					{
 						ArgChk.Eq(token.Children, nameof(token.Children), 2);
-						var arg1 = ArgInteger(token, 1);
-						var arg0 = ArgInteger(token, 0);
+						var arg1 = ArgInteger(context, token, 1);
+						var arg0 = ArgInteger(context, token, 0);
 						if (arg1 == 0)
 							return (double)arg0 / arg1;
-						return ArgInteger(token, 0) / arg1;
+						return ArgInteger(context, token, 0) / arg1;
 					}
 				case TokenType.BinaryPlus:
 					{
 						ArgChk.Eq(token.Children, nameof(token.Children), 2);
-						return ArgDouble(token, 0) + ArgDouble(token, 1);
+						return ArgDouble(context, token, 0) + ArgDouble(context, token, 1);
 					}
 				case TokenType.BinaryMinus:
 					{
 						ArgChk.Eq(token.Children, nameof(token.Children), 2);
-						return ArgDouble(token, 0) - ArgDouble(token, 1);
+						return ArgDouble(context, token, 0) - ArgDouble(context, token, 1);
 					}
 				case TokenType.BinaryLt:
 					{
 						ArgChk.Eq(token.Children, nameof(token.Children), 2);
-						return ArgDouble(token, 0) < ArgDouble(token, 1);
+						return ArgDouble(context, token, 0) < ArgDouble(context, token, 1);
 					}
 				case TokenType.BinaryLe:
 					{
 						ArgChk.Eq(token.Children, nameof(token.Children), 2);
-						return ArgDouble(token, 0) <= ArgDouble(token, 1);
+						return ArgDouble(context, token, 0) <= ArgDouble(context, token, 1);
 					}
 				case TokenType.BinaryGt:
 					{
 						ArgChk.Eq(token.Children, nameof(token.Children), 2);
-						return ArgDouble(token, 0) > ArgDouble(token, 1);
+						return ArgDouble(context, token, 0) > ArgDouble(context, token, 1);
 					}
 				case TokenType.BinaryGe:
 					{
 						ArgChk.Eq(token.Children, nameof(token.Children), 2);
-						return ArgDouble(token, 0) >= ArgDouble(token, 1);
+						return ArgDouble(context, token, 0) >= ArgDouble(context, token, 1);
 					}
 				case TokenType.BinaryEq:
 					{
 						ArgChk.Eq(token.Children, nameof(token.Children), 2);
-						return _context.DoubleNearZero(ArgDouble(token, 0) - ArgDouble(token, 1));
+						return context.DoubleNearZero(ArgDouble(context, token, 0) - ArgDouble(context, token, 1));
 					}
 				case TokenType.BinaryNe:
 					{
 						ArgChk.Eq(token.Children, nameof(token.Children), 2);
-						return !_context.DoubleNearZero(ArgDouble(token, 0) - ArgDouble(token, 1));
+						return !context.DoubleNearZero(ArgDouble(context, token, 0) - ArgDouble(context, token, 1));
 					}
 				case TokenType.BinaryAnd:
 					{
 						ArgChk.Eq(token.Children, nameof(token.Children), 2);
-						return ArgBool(token, 0) && ArgBool(token, 1);
+						return ArgBool(context, token, 0) && ArgBool(context, token, 1);
 					}
 				case TokenType.BinaryOr:
 					{
 						ArgChk.Eq(token.Children, nameof(token.Children), 2);
-						return ArgBool(token, 0) || ArgBool(token, 1);
+						return ArgBool(context, token, 0) || ArgBool(context, token, 1);
 					}
 				case TokenType.TrinayCondition:
 					{
 						ArgChk.Eq(token.Children, nameof(token.Children), 3);
-						return ArgBool(token, 0) ? Arg(token, 1) : Arg(token, 2);
+						return ArgBool(context, token, 0) ? Arg(context, token, 1) : Arg(context, token, 2);
 					}
 				default:
 					throw new ArgumentOutOfRangeException();
 			}
 		}
-	}
 
+		public IToken Root { get; }
+
+		private static IEnumerable<string> GetFunction(IToken token)
+		{
+			if (token.Type == TokenType.Func)
+				yield return token.Expr;
+			if (token.Children == null || token.Children.Count == 0)
+				yield break;
+			foreach (var c in token.Children)
+				foreach (var f in GetFunction(c))
+					yield return f;
+		}
+
+		private static IEnumerable<string> GetVariable(IToken token)
+		{
+			if (token.Type == TokenType.Identifier)
+				yield return token.Expr;
+			if (token.Children == null || token.Children.Count == 0)
+				yield break;
+			foreach (var c in token.Children)
+				foreach (var v in GetVariable(c))
+					yield return v;
+		}
+
+		public IEnumerable<string> Functions => GetFunction(Root);
+		public IEnumerable<string> Variables => GetVariable(Root);
+	}
 }

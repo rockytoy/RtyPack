@@ -78,7 +78,7 @@ namespace RockyToy.Common
 		[LocalizationRequired(false)]
 		public static void NullOrEmpty<T>(ICollection<T> argument, [InvokerParameterName] string argumentName)
 		{
-			if (argument?.Count > 0)
+			if ((argument?.Count ?? 0) > 0)
 				throw new ArgumentNullException(argumentName, $"{argumentName} ({argument.Count}) is not null nor empty");
 		}
 

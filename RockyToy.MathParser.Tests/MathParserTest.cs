@@ -160,11 +160,11 @@ namespace RockyToy.MathParser.Tests
 	[TestFixture]
 	public class MathParserTest
 	{
-		private readonly IParser _basicParser;
+		private readonly IExprBuilder _basicExprBuilder;
 
 		public MathParserTest()
 		{
-			_basicParser = new ParserBuilder().GetParser();
+			_basicExprBuilder = new ExprBuilder();
 		}
 
 		[Test,
@@ -176,7 +176,7 @@ namespace RockyToy.MathParser.Tests
 			TestCaseSource(typeof(MathParserTestcases), nameof(MathParserTestcases.BasicLogic))]
 		public IConvertible TestBasicParser(string expr)
 		{
-			return _basicParser.Parse(expr);
+			return _basicExprBuilder.Eval(expr);
 		}
 	}
 }

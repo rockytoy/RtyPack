@@ -8,6 +8,11 @@ namespace RockyToy.Common.Tests
 	[TestFixture]
 	public class ArgChkTest
 	{
+		private readonly object _nullObj = null;
+		private readonly int? _nullInt = new int?();
+		private readonly string _nullString = null;
+		private readonly Func<bool> _nullPredicate = null;
+		private readonly ICollection<int> _colNull = null;
 		private const string ArgName = "test";
 		private readonly ICollection<int> _col0 = new Collection<int>();
 		private readonly ICollection<int> _col1 = new Collection<int> { 0 };
@@ -16,27 +21,27 @@ namespace RockyToy.Common.Tests
 		public void TestNotNull()
 		{
 			Assert.DoesNotThrow(() => ArgChk.NotNull(0, ArgName));
-			Assert.Throws<ArgumentNullException>(() => ArgChk.NotNull(null, ArgName));
-			Assert.Throws<ArgumentNullException>(() => ArgChk.NotNull(new int?(), ArgName));
+			Assert.Throws<ArgumentNullException>(() => ArgChk.NotNull(_nullObj, ArgName));
+			Assert.Throws<ArgumentNullException>(() => ArgChk.NotNull(_nullInt, ArgName));
 		}
 
 		[Test]
 		public void TestNull()
 		{
 			Assert.Throws<ArgumentNullException>(() => ArgChk.Null(0, ArgName));
-			Assert.DoesNotThrow(() => ArgChk.Null(null, ArgName));
-			Assert.DoesNotThrow(() => ArgChk.Null(new int?(), ArgName));
+			Assert.DoesNotThrow(() => ArgChk.Null(_nullObj, ArgName));
+			Assert.DoesNotThrow(() => ArgChk.Null(_nullInt, ArgName));
 		}
 
 		[Test]
 		public void TestNotNullOrEmpty()
 		{
 			// string
-			Assert.Throws<ArgumentNullException>(() => ArgChk.NotNullOrEmpty(null, ArgName));
+			Assert.Throws<ArgumentNullException>(() => ArgChk.NotNullOrEmpty(_nullString, ArgName));
 			Assert.Throws<ArgumentNullException>(() => ArgChk.NotNullOrEmpty("", ArgName));
 			Assert.DoesNotThrow(() => ArgChk.NotNullOrEmpty("ok", ArgName));
 			// ICollection
-			Assert.Throws<ArgumentNullException>(() => ArgChk.NotNullOrEmpty<int>(null, ArgName));
+			Assert.Throws<ArgumentNullException>(() => ArgChk.NotNullOrEmpty(_colNull, ArgName));
 			Assert.Throws<ArgumentNullException>(() => ArgChk.NotNullOrEmpty(_col0, ArgName));
 			Assert.DoesNotThrow(() => ArgChk.NotNullOrEmpty(_col1, ArgName));
 		}
@@ -45,11 +50,11 @@ namespace RockyToy.Common.Tests
 		public void TestNullOrEmpty()
 		{
 			// string
-			Assert.DoesNotThrow(() => ArgChk.NullOrEmpty(null, ArgName));
+			Assert.DoesNotThrow(() => ArgChk.NullOrEmpty(_nullString, ArgName));
 			Assert.DoesNotThrow(() => ArgChk.NullOrEmpty("", ArgName));
 			Assert.Throws<ArgumentNullException>(() => ArgChk.NullOrEmpty("ok", ArgName));
 			// ICollection
-			Assert.DoesNotThrow(() => ArgChk.NullOrEmpty<int>(null, ArgName));
+			Assert.DoesNotThrow(() => ArgChk.NullOrEmpty(_colNull, ArgName));
 			Assert.DoesNotThrow(() => ArgChk.NullOrEmpty(_col0, ArgName));
 			Assert.Throws<ArgumentNullException>(() => ArgChk.NullOrEmpty(_col1, ArgName));
 		}
@@ -94,6 +99,7 @@ namespace RockyToy.Common.Tests
 		[Test]
 		public void TestPredicate()
 		{
+			Assert.Throws<ArgumentNullException>(() => ArgChk.Predicate(_nullPredicate, ArgName));
 			Assert.Throws<ArgumentException>(() => ArgChk.Predicate(() => false, ArgName));
 			Assert.DoesNotThrow(() => ArgChk.Predicate(() => true, ArgName));
 		}
@@ -106,7 +112,7 @@ namespace RockyToy.Common.Tests
 			Assert.Throws<ArgumentOutOfRangeException>(() => ArgChk.Gt(0, ArgName, 0));
 			Assert.Throws<ArgumentOutOfRangeException>(() => ArgChk.Gt(0, ArgName, 1));
 			// collection
-			Assert.Throws<ArgumentNullException>(() => ArgChk.Gt<int>(null, ArgName, 1));
+			Assert.Throws<ArgumentNullException>(() => ArgChk.Gt(_colNull, ArgName, 1));
 			Assert.Throws<ArgumentOutOfRangeException>(() => ArgChk.Gt(_col0, ArgName, 0));
 			Assert.DoesNotThrow(() => ArgChk.Gt(_col1, ArgName, 0));
 			Assert.DoesNotThrow(() => ArgChk.Gt(_col3, ArgName, 2));
@@ -122,7 +128,7 @@ namespace RockyToy.Common.Tests
 			Assert.Throws<ArgumentOutOfRangeException>(() => ArgChk.Lt(0, ArgName, 0));
 			Assert.Throws<ArgumentOutOfRangeException>(() => ArgChk.Lt(1, ArgName, 0));
 			// collection
-			Assert.Throws<ArgumentNullException>(() => ArgChk.Lt<int>(null, ArgName, 1));
+			Assert.Throws<ArgumentNullException>(() => ArgChk.Lt(_colNull, ArgName, 1));
 			Assert.Throws<ArgumentOutOfRangeException>(() => ArgChk.Lt(_col0, ArgName, 0));
 			Assert.Throws<ArgumentOutOfRangeException>(() => ArgChk.Lt(_col1, ArgName, 0));
 			Assert.Throws<ArgumentOutOfRangeException>(() => ArgChk.Lt(_col3, ArgName, 2));
@@ -137,15 +143,15 @@ namespace RockyToy.Common.Tests
 			Assert.Throws<ArgumentOutOfRangeException>(() => ArgChk.Eq(0, ArgName, 1));
 			Assert.Throws<ArgumentOutOfRangeException>(() => ArgChk.Eq(1, ArgName, 0));
 			// string
-			Assert.DoesNotThrow(() => ArgChk.Eq<string>(null, ArgName, null));
-			Assert.Throws<ArgumentOutOfRangeException>(() => ArgChk.Eq(null, ArgName, string.Empty));
-			Assert.Throws<ArgumentOutOfRangeException>(() => ArgChk.Eq(string.Empty, ArgName, null));
+			Assert.DoesNotThrow(() => ArgChk.Eq(_nullString, ArgName, _nullString));
+			Assert.Throws<ArgumentOutOfRangeException>(() => ArgChk.Eq(_nullString, ArgName, string.Empty));
+			Assert.Throws<ArgumentOutOfRangeException>(() => ArgChk.Eq(string.Empty, ArgName, _nullString));
 			Assert.DoesNotThrow(() => ArgChk.Eq(string.Empty, ArgName, string.Empty));
 			Assert.Throws<ArgumentOutOfRangeException>(() => ArgChk.Eq("abc", ArgName, string.Empty));
 			Assert.DoesNotThrow(() => ArgChk.Eq("abc", ArgName, "abc"));
 			Assert.Throws<ArgumentOutOfRangeException>(() => ArgChk.Eq("xyz", ArgName, "abc"));
 			// collection
-			Assert.Throws<ArgumentNullException>(() => ArgChk.Eq<int>(null, ArgName, 1));
+			Assert.Throws<ArgumentNullException>(() => ArgChk.Eq(_colNull, ArgName, 1));
 			Assert.DoesNotThrow(() => ArgChk.Eq(_col0, ArgName, 0));
 			Assert.Throws<ArgumentOutOfRangeException>(() => ArgChk.Eq(_col1, ArgName, 0));
 			Assert.Throws<ArgumentOutOfRangeException>(() => ArgChk.Eq(_col3, ArgName, 2));
@@ -160,22 +166,22 @@ namespace RockyToy.Common.Tests
 			Assert.DoesNotThrow(() => ArgChk.Ne(0, ArgName, 1));
 			Assert.DoesNotThrow(() => ArgChk.Ne(1, ArgName, 0));
 			// string
-			Assert.Throws<ArgumentOutOfRangeException>(() => ArgChk.Ne<string>(null, ArgName, null));
-			Assert.DoesNotThrow(() => ArgChk.Ne(null, ArgName, string.Empty));
-			Assert.DoesNotThrow(() => ArgChk.Ne(string.Empty, ArgName, null));
+			Assert.Throws<ArgumentOutOfRangeException>(() => ArgChk.Ne(_nullString, ArgName, _nullString));
+			Assert.DoesNotThrow(() => ArgChk.Ne(_nullString, ArgName, string.Empty));
+			Assert.DoesNotThrow(() => ArgChk.Ne(string.Empty, ArgName, _nullString));
 			Assert.Throws<ArgumentOutOfRangeException>(() => ArgChk.Ne(string.Empty, ArgName, string.Empty));
 			Assert.DoesNotThrow(() => ArgChk.Ne("abc", ArgName, string.Empty));
 			Assert.Throws<ArgumentOutOfRangeException>(() => ArgChk.Ne("abc", ArgName, "abc"));
 			Assert.DoesNotThrow(() => ArgChk.Ne("xyz", ArgName, "abc"));
 			// collection
-			Assert.Throws<ArgumentNullException>(() => ArgChk.Ne<int>(null, ArgName, 1));
+			Assert.Throws<ArgumentNullException>(() => ArgChk.Ne(_colNull, ArgName, 1));
 			Assert.Throws<ArgumentOutOfRangeException>(() => ArgChk.Ne(_col0, ArgName, 0));
 			Assert.DoesNotThrow(() => ArgChk.Ne(_col1, ArgName, 0));
 			Assert.DoesNotThrow(() => ArgChk.Ne(_col3, ArgName, 2));
 			Assert.DoesNotThrow(() => ArgChk.Ne(_col3, ArgName, 4));
 		}
 
-		public enum TestEnum
+		private enum TestEnum
 		{
 			T1,
 			T2,

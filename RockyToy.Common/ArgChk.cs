@@ -17,7 +17,7 @@ namespace RockyToy.Common
 		[DebuggerStepThrough]
 		[ContractAnnotation("argument:null => halt")]
 		[LocalizationRequired(false)]
-		public static void NotNull(object argument, [InvokerParameterName] string argumentName)
+		public static void NotNull([NotNull]object argument, [InvokerParameterName] string argumentName)
 		{
 			if (argument == null)
 				throw new ArgumentNullException(argumentName, $"{argumentName} cannot be null");
@@ -46,7 +46,7 @@ namespace RockyToy.Common
 		[DebuggerStepThrough]
 		[ContractAnnotation("argument:null => halt")]
 		[LocalizationRequired(false)]
-		public static void NotNullOrEmpty<T>(ICollection<T> argument, [InvokerParameterName] string argumentName)
+		public static void NotNullOrEmpty<T>([NotNull]ICollection<T> argument, [InvokerParameterName] string argumentName)
 		{
 			NotNull(argument, argumentName);
 			if (argument.Count == 0)
@@ -61,7 +61,7 @@ namespace RockyToy.Common
 		[DebuggerStepThrough]
 		[ContractAnnotation("argument:null => halt")]
 		[LocalizationRequired(false)]
-		public static void NotNullOrEmpty(string argument, [InvokerParameterName] string argumentName)
+		public static void NotNullOrEmpty([NotNull]string argument, [InvokerParameterName] string argumentName)
 		{
 			if (string.IsNullOrEmpty(argument))
 				throw new ArgumentNullException(argumentName, $"{argumentName} is null or empty string");
@@ -78,7 +78,9 @@ namespace RockyToy.Common
 		[LocalizationRequired(false)]
 		public static void NullOrEmpty<T>(ICollection<T> argument, [InvokerParameterName] string argumentName)
 		{
-			if ((argument?.Count ?? 0) > 0)
+			if (argument == null)
+				return;
+			if (argument.Count > 0)
 				throw new ArgumentNullException(argumentName, $"{argumentName} ({argument.Count}) is not null nor empty");
 		}
 
@@ -139,8 +141,9 @@ namespace RockyToy.Common
 		/// <param name="argumentName"></param>
 		[DebuggerStepThrough]
 		[LocalizationRequired(false)]
-		public static void Predicate(Func<bool> predicate, [InvokerParameterName] string argumentName)
+		public static void Predicate([NotNull]Func<bool> predicate, [InvokerParameterName] string argumentName)
 		{
+			NotNull(predicate, argumentName);
 			if (!predicate())
 				throw new ArgumentException($"{argumentName} failed predicate", argumentName);
 		}

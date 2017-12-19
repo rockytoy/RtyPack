@@ -4,12 +4,12 @@ using Sprache;
 
 namespace RockyToy.MathParser
 {
-	public interface ITokenizer
+	internal interface ITokenizer
 	{
 		IToken Tokenize(string expr);
 	}
 
-	public class Tokenizer : ITokenizer
+	internal class Tokenizer : ITokenizer
 	{
 		protected readonly ITokenFactory TokenFactory;
 		public Tokenizer(ITokenFactory factory)

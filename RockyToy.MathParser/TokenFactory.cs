@@ -3,7 +3,7 @@ using JetBrains.Annotations;
 
 namespace RockyToy.MathParser
 {
-	public interface ITokenFactory
+	internal interface ITokenFactory
 	{
 		IToken CreateToken(TokenType type, [NotNull] string expr, [NotNull] params IToken[] tokens);
 		IToken CreateToken(TokenType type, [NotNull] string expr);
@@ -12,7 +12,7 @@ namespace RockyToy.MathParser
 		IToken CreateToken(TokenType type, [NotNull] IEnumerable<IToken> tokens);
 	}
 
-	public class TokenFactory : ITokenFactory
+	internal class TokenFactory : ITokenFactory
 	{
 		public IToken CreateToken(TokenType type, string expr, params IToken[] tokens)
 		{

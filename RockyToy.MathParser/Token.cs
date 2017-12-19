@@ -5,14 +5,14 @@ using RockyToy.Common;
 
 namespace RockyToy.MathParser
 {
-	public interface IToken
+	internal interface IToken
 	{
 		string Expr { get; }
 		TokenType Type { get; }
 		IList<IToken> Children { get; }
 	}
 
-	public class Token : IToken
+	internal class Token : IToken
 	{
 		public Token([NotNull] string expr, TokenType type)
 		{

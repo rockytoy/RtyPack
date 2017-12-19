@@ -1,6 +1,6 @@
 namespace RockyToy.MathParser
 {
-	public enum TokenType
+	internal enum TokenType
 	{
 		LiteralNumber,
 

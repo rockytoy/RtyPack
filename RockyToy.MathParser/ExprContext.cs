@@ -42,13 +42,21 @@ namespace RockyToy.MathParser
 		public Func<IExprContext, IConvertible> GetVar(string name)
 		{
 			Func<IExprContext, IConvertible> ret;
-			return _variables.TryGetValue(name, out ret) ? ret : _defVariables[name];
+			if (_variables.TryGetValue(name, out ret))
+				return ret;
+			if (_defVariables.TryGetValue(name, out ret))
+				return ret;
+			throw new UndefinedVariableException(name);
 		}
 
 		public Func<IExprContext, IList<IConvertible>, IConvertible> GetFunc(string name)
 		{
 			Func<IExprContext, IList<IConvertible>, IConvertible> ret;
-			return _functions.TryGetValue(name, out ret) ? ret : _defFunctions[name];
+			if (_functions.TryGetValue(name, out ret))
+				return ret;
+			if (_defFunctions.TryGetValue(name, out ret))
+				return ret;
+			throw new UndefinedFunctionException(name);
 		}
 
 		public bool DoubleNearZero(double val)

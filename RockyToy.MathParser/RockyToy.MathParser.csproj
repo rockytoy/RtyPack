@@ -52,6 +52,7 @@
     <Compile Include="ExprBuilder.cs" />
     <Compile Include="ExprContext.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Exceptions.cs" />
     <Compile Include="Token.cs" />
     <Compile Include="TokenFactory.cs" />
     <Compile Include="Tokenizer.cs" />

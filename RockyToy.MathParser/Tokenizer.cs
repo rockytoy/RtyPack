@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using System.Linq;
 using Sprache;
 
@@ -24,7 +23,7 @@ namespace RockyToy.MathParser
 		{
 			get
 			{
-				Debug.WriteLine($"parsing {nameof(NumberFracString)}");
+				//Debug.WriteLine($"parsing {nameof(NumberFracString)}");
 				return Parse.Char('.').Once().Then(dot => Parse.Digit.AtLeastOnce().Select(frac => string.Concat(dot.Union(frac))));
 			}
 		}
@@ -34,7 +33,7 @@ namespace RockyToy.MathParser
 		{
 			get
 			{
-				Debug.WriteLine($"parsing {nameof(NumberExpString)}");
+				//Debug.WriteLine($"parsing {nameof(NumberExpString)}");
 				return Parse.Chars("Ee").Once()
 					.Then(e => Parse.Digit.XAtLeastOnce().Select(n => string.Concat(e.Union(n))).XOr(Parse
 						.Chars("+-").Once()
@@ -47,18 +46,18 @@ namespace RockyToy.MathParser
 		{
 			get
 			{
-				Debug.WriteLine($"parsing {nameof(NumberIntString)}");
+				//Debug.WriteLine($"parsing {nameof(NumberIntString)}");
 				return Parse.Digit.AtLeastOnce()
 					.Select(string.Concat);
 			}
 		}
-		
+
 		// Number => (NumberInt)(NumberFrac)?(NumberExp)? | NumberFrac
 		protected virtual Parser<string> NumberString
 		{
 			get
 			{
-				Debug.WriteLine($"parsing {nameof(NumberString)}");
+				//Debug.WriteLine($"parsing {nameof(NumberString)}");
 				return NumberIntString.Then(integer => NumberFracString.Then(frac => NumberExpString.Select(exp => integer + frac + exp)))
 					.Or(NumberIntString.Then(integer => NumberFracString.Select(frac => integer + frac)))
 					.Or(NumberIntString.Then(integer => NumberExpString.Select(exp => integer + exp)))
@@ -71,7 +70,7 @@ namespace RockyToy.MathParser
 		{
 			get
 			{
-				Debug.WriteLine($"parsing {nameof(Number)}");
+				//Debug.WriteLine($"parsing {nameof(Number)}");
 				return NumberString.Select(
 					x => TokenFactory.CreateToken(TokenType.LiteralNumber, x));
 			}
@@ -85,7 +84,7 @@ namespace RockyToy.MathParser
 		{
 			get
 			{
-				Debug.WriteLine($"parsing {nameof(IdentifierFirstChar)}");
+				//Debug.WriteLine($"parsing {nameof(IdentifierFirstChar)}");
 				return Parse.Char(c => char.IsLetter(c) || "_$".Contains(c),
 					"parsing identifier first character");
 			}
@@ -95,7 +94,7 @@ namespace RockyToy.MathParser
 		{
 			get
 			{
-				Debug.WriteLine($"parsing {nameof(IdentifierTailChar)}");
+				//Debug.WriteLine($"parsing {nameof(IdentifierTailChar)}");
 				return Parse.Char(c => char.IsLetterOrDigit(c) || "_$".Contains(c),
 					"parsing identifier character");
 			}
@@ -105,8 +104,8 @@ namespace RockyToy.MathParser
 		{
 			get
 			{
-				Debug.WriteLine($"parsing {nameof(IdentifierString)}");
-				return Parse.Identifier(IdentifierFirstChar, IdentifierTailChar).Token();
+				//Debug.WriteLine($"parsing {nameof(IdentifierString)}");
+				return IdentifierFirstChar.Then(f => IdentifierTailChar.Many().Text().Select(t => f + t));
 			}
 		}
 
@@ -114,7 +113,7 @@ namespace RockyToy.MathParser
 		{
 			get
 			{
-				Debug.WriteLine($"parsing {nameof(Identifier)}");
+				//Debug.WriteLine($"parsing {nameof(Identifier)}");
 				return IdentifierString.Select(x => TokenFactory.CreateToken(TokenType.Identifier, x));
 			}
 		}
@@ -130,23 +129,24 @@ namespace RockyToy.MathParser
 		{
 			get
 			{
-				Debug.WriteLine($"parsing {nameof(FuncArgs)}");
+				//Debug.WriteLine($"parsing {nameof(FuncArgs)}");
 				return Parse.ChainRightOperator(Parse.Char(',').Token(), Expr,
 					(comma, e1, e2) => TokenFactory.CreateToken(TokenType.FuncArgs, e1, e2));
 			}
 		}
 
 		/// <summary>
-		/// <see cref="IdentifierString"/> "(" <see cref="FuncArgs"/> ")"
+		/// <see cref="IdentifierString"/> "(" (<see cref="FuncArgs"/>)? ")"
 		/// </summary>
 		protected virtual Parser<IToken> Func
 		{
 			get
 			{
-				Debug.WriteLine($"parsing {nameof(Func)}");
-				return IdentifierString
-					.Then(name => FuncArgs.Contained(Parse.Char('(').Token(), Parse.Char(')').Token())
-						.Select(args => TokenFactory.CreateToken(TokenType.Func, name, args)));
+				//Debug.WriteLine($"parsing {nameof(Func)}");
+				return IdentifierString.Then(name => Parse.Char('(').Token().Then(c1 =>
+						Parse.Char(')').Token().Select(c2 => TokenFactory.CreateToken(TokenType.Func, name))))
+					.Or(IdentifierString.Then(name => Parse.Char('(').Token().Then(c1 => FuncArgs.Then(args =>
+						Parse.Char(')').Token().Select(c2 => TokenFactory.CreateToken(TokenType.Func, name, args))))));
 			}
 		}
 
@@ -161,7 +161,7 @@ namespace RockyToy.MathParser
 		{
 			get
 			{
-				Debug.WriteLine($"parsing {nameof(ExprParent)}");
+				//Debug.WriteLine($"parsing {nameof(ExprParent)}");
 				return ExprParent1.XOr(ExprParent2).XOr(ExprParent3).Token();
 			}
 		}
@@ -173,7 +173,7 @@ namespace RockyToy.MathParser
 		{
 			get
 			{
-				Debug.WriteLine($"parsing {nameof(ExprParent1)}");
+				//Debug.WriteLine($"parsing {nameof(ExprParent1)}");
 				return Parse.Char('[').Token().Then(c1 => Expr.Then(e => Parse.Char(']').Token()
 					.Select(c2 => TokenFactory.CreateToken(TokenType.UnaryNoOp, e))));
 			}
@@ -186,7 +186,7 @@ namespace RockyToy.MathParser
 		{
 			get
 			{
-				Debug.WriteLine($"parsing {nameof(ExprParent2)}");
+				//Debug.WriteLine($"parsing {nameof(ExprParent2)}");
 				return Parse.Char('(').Token().Then(c1 => Expr.Then(e => Parse.Char(')').Token()
 					.Select(c2 => TokenFactory.CreateToken(TokenType.UnaryNoOp, e))));
 			}
@@ -199,7 +199,7 @@ namespace RockyToy.MathParser
 		{
 			get
 			{
-				Debug.WriteLine($"parsing {nameof(ExprParent3)}");
+				//Debug.WriteLine($"parsing {nameof(ExprParent3)}");
 				return Parse.Char('{').Token().Then(c1 => Expr.Then(e => Parse.Char('}').Token()
 					.Select(c2 => TokenFactory.CreateToken(TokenType.UnaryNoOp, e))));
 			}
@@ -216,8 +216,8 @@ namespace RockyToy.MathParser
 		{
 			get
 			{
-				Debug.WriteLine($"parsing {nameof(Atom)}");
-				return Number.XOr(Func).XOr(Identifier).XOr(ExprParent);
+				//Debug.WriteLine($"parsing {nameof(Atom)}");
+				return Number.XOr(ExprParent).XOr(Func.Or(Identifier));
 			}
 		}
 
@@ -228,7 +228,7 @@ namespace RockyToy.MathParser
 		{
 			get
 			{
-				Debug.WriteLine($"parsing {nameof(SignedAtom)}");
+				//Debug.WriteLine($"parsing {nameof(SignedAtom)}");
 				return Parse.Chars("+-!").Token().Then(c =>
 						SignedAtom.Select(sa =>
 							TokenFactory.CreateToken(c == '+' ? TokenType.UnaryPlus : (c == '-' ? TokenType.UnaryMinus : TokenType.UnaryNot),
@@ -244,7 +244,7 @@ namespace RockyToy.MathParser
 		{
 			get
 			{
-				Debug.WriteLine($"parsing {nameof(ExprPow)}");
+				//Debug.WriteLine($"parsing {nameof(ExprPow)}");
 				return Parse.ChainRightOperator(Parse.Char('^').Token(), SignedAtom,
 					(pow, sa1, sa2) => TokenFactory.CreateToken(TokenType.BinaryPow, sa1, sa2));
 			}
@@ -257,7 +257,7 @@ namespace RockyToy.MathParser
 		{
 			get
 			{
-				Debug.WriteLine($"parsing {nameof(ExprMulDiv)}");
+				//Debug.WriteLine($"parsing {nameof(ExprMulDiv)}");
 				return Parse.ChainOperator(Parse.Chars("*/\\").Token(), ExprPow,
 					(mulDiv, e1, e2) => TokenFactory.CreateToken(
 						mulDiv == '*' ? TokenType.BinaryMul : (mulDiv == '/' ? TokenType.BinaryDiv : TokenType.BinaryDivInt), e1, e2));
@@ -271,7 +271,7 @@ namespace RockyToy.MathParser
 		{
 			get
 			{
-				Debug.WriteLine($"parsing {nameof(ExprPlusMinus)}");
+				//Debug.WriteLine($"parsing {nameof(ExprPlusMinus)}");
 				return Parse.ChainOperator(Parse.Chars("+-").Token(), ExprMulDiv,
 					(plusMinus, e1, e2) => TokenFactory.CreateToken(plusMinus == '+' ? TokenType.BinaryPlus : TokenType.BinaryMinus,
 						e1,
@@ -286,7 +286,7 @@ namespace RockyToy.MathParser
 		{
 			get
 			{
-				Debug.WriteLine($"parsing {nameof(RelationToken)}");
+				//Debug.WriteLine($"parsing {nameof(RelationToken)}");
 				return Parse.Char('>').Then(c1 => Parse.Char('=').Optional()).Token()
 					.Select(c2 => c2.IsEmpty ? TokenType.BinaryGt : TokenType.BinaryGe)
 					.XOr(Parse.Char('<').Then(c1 => Parse.Char('=').Optional()).Token()
@@ -303,7 +303,7 @@ namespace RockyToy.MathParser
 		{
 			get
 			{
-				Debug.WriteLine($"parsing {nameof(ExprRelation)}");
+				//Debug.WriteLine($"parsing {nameof(ExprRelation)}");
 				return ExprPlusMinus.Then(e1 => RelationToken.Then(opt => ExprRelation
 						.Select(e2 => TokenFactory.CreateToken(opt, e1, e2))))
 					.Or(ExprPlusMinus);
@@ -317,7 +317,7 @@ namespace RockyToy.MathParser
 		{
 			get
 			{
-				Debug.WriteLine($"parsing {nameof(EqualityToken)}");
+				//Debug.WriteLine($"parsing {nameof(EqualityToken)}");
 				return Parse.Char('=').Then(c1 => Parse.Char('=')).Token().Select(c2 => TokenType.BinaryEq)
 					.XOr(Parse.Char('<').Then(c1 => Parse.Char('>')).Token().Select(c2 => TokenType.BinaryNe))
 					.XOr(Parse.Char('!').Then(c1 => Parse.Char('=')).Token().Select(c2 => TokenType.BinaryNe));
@@ -331,7 +331,7 @@ namespace RockyToy.MathParser
 		{
 			get
 			{
-				Debug.WriteLine($"parsing {nameof(ExprEquality)}");
+				//Debug.WriteLine($"parsing {nameof(ExprEquality)}");
 				return ExprRelation.Then(e1 => EqualityToken.Then(opt => ExprEquality
 					.Select(e2 => TokenFactory.CreateToken(opt, e1, e2)))).Or(ExprRelation);
 			}
@@ -344,7 +344,7 @@ namespace RockyToy.MathParser
 		{
 			get
 			{
-				Debug.WriteLine($"parsing {nameof(ExprAnd)}");
+				//Debug.WriteLine($"parsing {nameof(ExprAnd)}");
 				return ExprEquality.Then(e1 => Parse.Char('&').Then(c1 => Parse.Char('&'))
 						.Token()
 						.Then(c2 => ExprAnd.Select(e2 => TokenFactory.CreateToken(TokenType.BinaryAnd, e1, e2))))
@@ -359,7 +359,7 @@ namespace RockyToy.MathParser
 		{
 			get
 			{
-				Debug.WriteLine($"parsing {nameof(ExprOr)}");
+				//Debug.WriteLine($"parsing {nameof(ExprOr)}");
 				return ExprAnd.Then(e1 => Parse.Char('|').Then(c1 => Parse.Char('|')).Token()
 					.Then(c2 => ExprOr.Select(e2 => TokenFactory.CreateToken(TokenType.BinaryOr, e1, e2)))).Or(ExprAnd);
 			}
@@ -372,7 +372,7 @@ namespace RockyToy.MathParser
 		{
 			get
 			{
-				Debug.WriteLine($"parsing {nameof(ExprCond)}");
+				//Debug.WriteLine($"parsing {nameof(ExprCond)}");
 				return ExprOr.Then(e1 => Parse.Char('?').Token().Then(c1 => Expr.Then(
 					e2 => Parse.Char(':').Token()
 						.Then(c2 => ExprCond.Select(e3 => TokenFactory.CreateToken(TokenType.TrinayCondition, e1, e2, e3)))))).Or(ExprOr);
@@ -383,16 +383,24 @@ namespace RockyToy.MathParser
 		{
 			get
 			{
-				Debug.WriteLine($"parsing {nameof(Expr)}");
+				//Debug.WriteLine($"parsing {nameof(Expr)}");
 				return ExprCond;
 			}
 		}
-
 		#endregion
 
 		public virtual IToken Tokenize(string expr)
 		{
-			return Expr.Parse(expr);
+			try
+			{
+				if (string.IsNullOrWhiteSpace(expr))
+					throw new ParseException("No syntax");
+				return Expr.End().Parse(expr.Trim());
+			}
+			catch (ParseException e)
+			{
+				throw new SyntaxException(expr, e);
+			}
 		}
 
 	}
